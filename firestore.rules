@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global deny-all fallback
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+             data.email is string && data.email.size() <= 128 &&
+             data.role in ['entrepreneur', 'counselor'] &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 20)) &&
+             (!('state' in data) || (data.state is string && data.state.size() <= 100)) &&
+             (!('district' in data) || (data.district is string && data.district.size() <= 100)) &&
+             (!('udyamNumber' in data) || (data.udyamNumber is string && data.udyamNumber.size() <= 50)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64)) &&
+             data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidSavedReport(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+             data.businessCategory is string && data.businessCategory.size() <= 128 &&
+             data.marginCapital is number && data.marginCapital >= 0 &&
+             data.projectCost is number && data.projectCost >= 0 &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 256)) &&
+             (!('loanEligibility' in data) || data.loanEligibility is number) &&
+             (!('schemeName' in data) || (data.schemeName is string && data.schemeName.size() <= 128)) &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 20)) &&
+             (!('applicantName' in data) || (data.applicantName is string && data.applicantName.size() <= 128)) &&
+             (!('reportData' in data) || data.reportData is map) &&
+             data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidFeedback(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             (!('tags' in data) || data.tags is list) &&
+             (!('comment' in data) || (data.comment is string && data.comment.size() <= 1000)) &&
+             (!('businessCategory' in data) || (data.businessCategory is string && data.businessCategory.size() <= 128)) &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 256)) &&
+             data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming()) && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt;
+      allow delete: if false;
+
+      match /reports/{reportId} {
+        allow get, list: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() && isOwner(userId) && isValidId(reportId) && isValidSavedReport(incoming());
+        allow update: if isSignedIn() && isOwner(userId) && isValidId(reportId) && isValidSavedReport(incoming()) && incoming().id == existing().id && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt;
+        allow delete: if isSignedIn() && isOwner(userId) && isValidId(reportId);
+      }
+
+      match /feedbacks/{feedbackId} {
+        allow get, list: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() && isOwner(userId) && isValidId(feedbackId) && isValidFeedback(incoming());
+        allow update, delete: if false;
+      }
+    }
+  }
+}

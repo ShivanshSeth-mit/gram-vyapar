@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Registered user profile and preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "role": { "type": "string", "enum": ["entrepreneur", "counselor"] },
+        "state": { "type": "string", "maxLength": 100 },
+        "district": { "type": "string", "maxLength": 100 },
+        "udyamNumber": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email", "role", "createdAt"]
+    },
+    "SavedReport": {
+      "title": "Saved Report",
+      "description": "User saved feasibility and financial dossier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "location": { "type": "string", "maxLength": 256 },
+        "businessCategory": { "type": "string", "maxLength": 128 },
+        "marginCapital": { "type": "number" },
+        "projectCost": { "type": "number" },
+        "loanEligibility": { "type": "number" },
+        "schemeName": { "type": "string", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "applicantName": { "type": "string", "maxLength": 128 },
+        "reportData": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "businessCategory", "marginCapital", "projectCost", "createdAt"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "Report usefulness rating and feedback",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "rating": { "type": "number" },
+        "tags": { "type": "array" },
+        "comment": { "type": "string", "maxLength": 1000 },
+        "businessCategory": { "type": "string", "maxLength": 128 },
+        "location": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "rating", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document"
+    },
+    "/users/{userId}/reports/{reportId}": {
+      "schema": "SavedReport",
+      "description": "User saved feasibility and financial reports"
+    },
+    "/users/{userId}/feedbacks/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "User submitted application feedbacks"
+    }
+  }
+}
